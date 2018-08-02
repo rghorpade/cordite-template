@@ -1,8 +1,6 @@
-![Corda](https://www.corda.net/wp-content/uploads/2016/11/fg005_corda_b.png)
-
 # Cordite Template
 
-A template that uses Cordfrom to spin up a local network of nodes with Cordite installed.
+A template that uses Cordform to spin up a local network of nodes with Cordite installed.
 
 ## Running the Cordite nodes
 
