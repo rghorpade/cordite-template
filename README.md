@@ -2,8 +2,7 @@
 
 # Cordite Template
 
-Welcome to the Cordite template. This is a template that uses Cordfrom to spin up a local network of nodes with Cordite 
-installed.
+A template that uses Cordfrom to spin up a local network of nodes with Cordite installed.
 
 ## Instructions
 
