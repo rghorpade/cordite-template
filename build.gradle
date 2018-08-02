@@ -60,7 +60,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         languageVersion = "1.1"
         apiVersion = "1.1"
         jvmTarget = "1.8"
-        javaParameters = true   // Useful for reflection.
+        javaParameters = true
     }
 }
 
