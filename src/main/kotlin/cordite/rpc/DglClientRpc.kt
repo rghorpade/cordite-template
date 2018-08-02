@@ -1,4 +1,4 @@
-package cordite
+package cordite.rpc
 
 import io.cordite.dgl.corda.account.AccountAddress
 import io.cordite.dgl.corda.account.CreateAccountFlow
@@ -38,33 +38,31 @@ private val NOTARY_NAME = CordaX500Name("Notary", "London", "GB")
 fun main(args: Array<String>) {
     val (randomAccountA, randomAccountB, randomSymbol) = (0..2).map { UUID.randomUUID().toString() }
 
-    val rpcClientA = DglRpcClient(PARTY_A_ADDRESS)
-    val rpcClientB = DglRpcClient(PARTY_B_ADDRESS)
+    val clientA = DglClientRpc(PARTY_A_ADDRESS)
+    val clientB = DglClientRpc(PARTY_B_ADDRESS)
 
-    rpcClientA.createAccount(randomAccountA)
-    rpcClientA.createToken(randomSymbol, 0)
-    rpcClientA.issueToken(randomSymbol, BigDecimal(100), randomAccountA)
-    val tokens = rpcClientA.getTokens(randomAccountA, randomSymbol)
-    println("Party A has ${tokens.sumBy { it.amount.quantity.toInt() }} tokens of type $randomSymbol in account $randomAccountA.")
+    clientA.createAccount(randomAccountA)
+    clientA.createTokenType(randomSymbol, 0)
+    clientA.issueToken(randomSymbol, BigDecimal(100), randomAccountA)
+    println(clientA.getTokens(randomAccountA, randomSymbol))
 
-    rpcClientA.transferToken(randomSymbol, BigDecimal(75), randomAccountA, randomAccountB, PARTY_B_NAME)
-    val tokens2 = rpcClientA.getTokens(randomAccountA, randomSymbol)
-    println("Party A has ${tokens2.sumBy { it.amount.quantity.toInt() }} tokens of type $randomSymbol in account $randomAccountA.")
-    val tokens3 = rpcClientB.getTokens(randomAccountB, randomSymbol)
-    println("Party B has ${tokens3.sumBy { it.amount.quantity.toInt() }} tokens of type $randomSymbol in account $randomAccountB.")
+    clientA.transferToken(randomSymbol, BigDecimal(75), randomAccountA, randomAccountB, PARTY_B_NAME)
+    clientA.getTokens(randomAccountA, randomSymbol)
+    clientB.getTokens(randomAccountB, randomSymbol)
 
-    rpcClientA.close()
-    rpcClientB.close()
+    clientA.close()
+    clientB.close()
 }
 
-private class DglRpcClient(address: String) {
+private class DglClientRpc(address: String) {
     private val rpcConnection: CordaRPCConnection
     private val rpcOps: CordaRPCOps
     private val party: Party
+    private val organisation: String
     private val notary: Party
 
     companion object {
-        private val logger = loggerFor<DglRpcClient>()
+        private val logger = loggerFor<DglClientRpc>()
     }
 
     init {
@@ -72,6 +70,7 @@ private class DglRpcClient(address: String) {
         rpcConnection = client.start(RPC_USERNAME, RPC_PASSWORD)
         rpcOps = rpcConnection.proxy
         party = rpcOps.nodeInfo().legalIdentities.single()
+        organisation = party.name.organisation
         notary = rpcOps.notaryPartyFromX500Name(NOTARY_NAME) ?: throw IllegalArgumentException("Notary not found.")
     }
 
@@ -84,7 +83,7 @@ private class DglRpcClient(address: String) {
         }
     }
 
-    fun createToken(symbol: String, exponent: Int) {
+    fun createTokenType(symbol: String, exponent: Int) {
         try {
             rpcOps.startFlow(::CreateTokenTypeFlow, symbol, exponent, notary).returnValue.getOrThrow()
         } catch (re: RuntimeException) {
@@ -116,7 +115,10 @@ private class DglRpcClient(address: String) {
     fun getTokens(accountId: String, symbol: String): List<Token.State> {
         val accountIdCriteria = VaultCustomQueryCriteria(PersistedToken::accountId.equal(accountId))
         val symbolCriteria = VaultCustomQueryCriteria(PersistedToken::tokenTypeSymbol.equal(symbol))
-        return rpcOps.vaultQueryBy<Token.State>(accountIdCriteria.and(symbolCriteria)).states.map { it.state.data }
+        val tokens = rpcOps.vaultQueryBy<Token.State>(accountIdCriteria.and(symbolCriteria)).states.map { it.state.data }
+        val totalValue = tokens.sumBy { it.amount.quantity.toInt() }
+        println("$organisation has $totalValue tokens of type $symbol in account $accountId.")
+        return tokens
     }
 
     fun close() {

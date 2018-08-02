@@ -28,4 +28,12 @@ A template that uses Cordfrom to spin up a local network of nodes with Cordite i
 
 ## Interacting with the Cordite nodes
 
-* Run the `DglRpcClient` to issue and transfer Cordite tokens around the network
+There are two ways to interact with Cordite nodes:
+
+* Using a regular `CordaRPCOps` object
+* Exposing the `LedgerApi`/`DaoApi`/`MeteringApi` services via Braid
+
+We have written two clients showing the two approaches:
+
+* `DglClientRpc`
+* `DglClientBraid`
