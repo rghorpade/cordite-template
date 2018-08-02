@@ -4,7 +4,7 @@
 
 A template that uses Cordfrom to spin up a local network of nodes with Cordite installed.
 
-## Instructions
+## Running the Cordite nodes
 
 * Clone the template:
     
@@ -25,3 +25,7 @@ A template that uses Cordfrom to spin up a local network of nodes with Cordite i
       build/nodes/runnodes (Unix)
       
       build\nodes\runnodes.bat (Windows)
+
+## Interacting with the Cordite nodes
+
+* Run the `DglRpcClient` to issue and transfer Cordite tokens around the network
