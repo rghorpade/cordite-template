@@ -22,4 +22,6 @@ A template that uses Cordfrom to spin up a local network of nodes with Cordite i
     
 * Run the nodes:
 
-      build/nodes/runnodes
+      build/nodes/runnodes (Unix)
+      
+      build\nodes\runnodes.bat (Windows)
