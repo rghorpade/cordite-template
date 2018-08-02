@@ -38,8 +38,8 @@ private val NOTARY_NAME = CordaX500Name("Notary", "London", "GB")
 fun main(args: Array<String>) {
     val (randomAccountA, randomAccountB, randomSymbol) = (0..2).map { UUID.randomUUID().toString() }
 
-    val clientA = DglClientRpc(PARTY_A_ADDRESS)
-    val clientB = DglClientRpc(PARTY_B_ADDRESS)
+    val clientA = DglClientRpc(PARTY_A_ADDRESS, RPC_USERNAME, RPC_PASSWORD, NOTARY_NAME)
+    val clientB = DglClientRpc(PARTY_B_ADDRESS, RPC_USERNAME, RPC_PASSWORD, NOTARY_NAME)
 
     clientA.createAccount(randomAccountA)
     clientA.createTokenType(randomSymbol, 0)
@@ -54,24 +54,11 @@ fun main(args: Array<String>) {
     clientB.close()
 }
 
-private class DglClientRpc(address: String) {
-    private val rpcConnection: CordaRPCConnection
-    private val rpcOps: CordaRPCOps
-    private val party: Party
-    private val organisation: String
-    private val notary: Party
+private class DglClientRpc(address: String, username: String, password: String, notaryName: CordaX500Name) : ClientRpc(address, username, password) {
+    private val notary = rpcOps.notaryPartyFromX500Name(notaryName) ?: throw IllegalArgumentException("Notary not found.")
 
     companion object {
         private val logger = loggerFor<DglClientRpc>()
-    }
-
-    init {
-        val client = CordaRPCClient(NetworkHostAndPort.parse(address))
-        rpcConnection = client.start(RPC_USERNAME, RPC_PASSWORD)
-        rpcOps = rpcConnection.proxy
-        party = rpcOps.nodeInfo().legalIdentities.single()
-        organisation = party.name.organisation
-        notary = rpcOps.notaryPartyFromX500Name(NOTARY_NAME) ?: throw IllegalArgumentException("Notary not found.")
     }
 
     fun createAccount(accountId: String) {
@@ -119,9 +106,5 @@ private class DglClientRpc(address: String) {
         val totalValue = tokens.sumBy { it.amount.quantity.toInt() }
         println("$organisation has $totalValue tokens of type $symbol in account $accountId.")
         return tokens
-    }
-
-    fun close() {
-        rpcConnection.notifyServerAndClose()
     }
 }
