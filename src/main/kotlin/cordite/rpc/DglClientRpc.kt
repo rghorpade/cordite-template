@@ -45,7 +45,7 @@ fun main(args: Array<String>) {
     // PartyA transfers 75 of the new token to PartyB.
     clientA.transferToken(randomSymbol, BigDecimal(75), randomAccountA, randomAccountB, PARTY_B_NAME)
 
-    // PartyA and PartyB print how many tokens they have.
+    // We look at the output. PartyA has 25 and PartyB has 75.
     println(clientA.balanceForAccount(randomAccountA))
     println(clientB.balanceForAccount(randomAccountB))
 

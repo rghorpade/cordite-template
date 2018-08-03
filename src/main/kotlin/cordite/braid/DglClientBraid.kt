@@ -25,9 +25,12 @@ fun main(args: Array<String>) {
     clientA.ledger.issueToken(randomAccountA, "100", randomSymbol, "", NOTARY_NAME).getOrThrow()
 
     // PartyA transfers 75 of the new token to PartyB.
-    // TODO: Money never arrives!
+    clientB.ledger.createAccount(randomAccountB, NOTARY_NAME).getOrThrow()
     clientA.ledger.transferToken("75", randomSymbol, randomAccountA, randomAccountB, "", NOTARY_NAME).getOrThrow()
+
+    // We look at the output. PartyA has 25 and PartyB has 75.
     println(clientA.ledger.balanceForAccount(randomAccountA).getOrThrow())
+    // TODO: Money hasn't arrived!
     println(clientB.ledger.balanceForAccount(randomAccountB).getOrThrow())
 
     clientA.close()

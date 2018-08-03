@@ -30,7 +30,10 @@ fun main(args: Array<String>) {
     val updatedDaoState = clientA.dao.daoFor(daoState.daoKey)
     println(updatedDaoState.members)
 
-    // TODO: In 0.2.0, we cannot view accepted proposals without access to the node's vault.
+    // PartyA views the existing proposals.
+    // TODO: Actually create some proposals.
+    val proposals = clientB.dao.normalProposalsFor(updatedDaoState.daoKey)
+    println(proposals)
 
     clientA.close()
     clientB.close()
