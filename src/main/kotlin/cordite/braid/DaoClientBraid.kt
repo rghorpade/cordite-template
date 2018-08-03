@@ -35,11 +35,21 @@ fun main(args: Array<String>) {
             "The DAO shall be headquartered in Delaware.",
             daoState.daoKey).getOrThrow()
 
+    // PartyA tries to accept the proposal.
+    try {
+        clientA.dao.acceptProposal(addressProposalState.proposal.proposalKey).getOrThrow()
+    } catch (e: RuntimeException) {
+        println("Not enough support - 60% of members must support it!")
+    }
+
     // PartyB supports the proposal.
     clientB.dao.voteForProposal(addressProposalState.proposal.proposalKey).getOrThrow()
 
+    // PartyA accepts the proposal.
+    clientA.dao.acceptProposal(addressProposalState.proposal.proposalKey).getOrThrow()
+
     // PartyA views the proposal.
-    println(clientB.dao.normalProposalsFor(updatedDaoState.daoKey))
+    println(clientA.dao.normalProposalsFor(updatedDaoState.daoKey))
 
     clientA.close()
     clientB.close()
