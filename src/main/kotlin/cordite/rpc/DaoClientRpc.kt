@@ -1,16 +1,14 @@
 package cordite.rpc
 
-import io.bluebank.braid.core.async.getOrThrow
-import io.cordite.dao.MemberProposal
-import io.cordite.dao.Proposal
+import io.cordite.dao.*
+import io.cordite.dao.flows.AcceptSponsorAction
 import io.cordite.dao.flows.CreateDaoFlow
 import io.cordite.dao.flows.CreateSponsorAction
-import io.cordite.dao.flows.SponsorAction
 import io.cordite.dao.flows.SponsorProposalFlow
-import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
-import net.corda.core.identity.Party
 import net.corda.core.messaging.startFlow
+import net.corda.core.messaging.vaultQueryBy
+import net.corda.core.node.services.vault.QueryCriteria.LinearStateQueryCriteria
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
 import java.util.*
@@ -35,9 +33,9 @@ fun main(args: Array<String>) {
     // PartyB joins the DAO.
     val proposalState = clientB.createNewMemberProposal(daoName, PARTY_A_NAME)
     // TODO: Explain why B can accept its own membership proposal.
-//    clientB.dao.acceptNewMemberProposal(proposalState.proposal.proposalKey, partyA).getOrThrow()
-//    val updatedDaoState = clientA.dao.daoFor(daoState.daoKey)
-//    println(updatedDaoState.members)
+    clientB.acceptNewMemberProposal(proposalState.proposal.proposalKey, PARTY_A_NAME)
+    val updatedDaoState = clientA.daoFor(daoState.daoKey)
+    println(updatedDaoState.members)
 
     clientA.close()
     clientB.close()
@@ -50,14 +48,28 @@ private class DaoClientRpc(address: String, username: String, password: String, 
         private val logger = loggerFor<DaoClientRpc>()
     }
 
-    fun createDao(daoName: String) {
-        rpcOps.startFlow(::CreateDaoFlow, daoName, notary).returnValue.getOrThrow()
+    fun createDao(daoName: String): DaoState {
+        return rpcOps.startFlow(::CreateDaoFlow, daoName, notary).returnValue.getOrThrow()
     }
 
-    fun createNewMemberProposal(daoName: String, sponsorName: CordaX500Name) {
+    fun createNewMemberProposal(daoName: String, sponsorName: CordaX500Name): ProposalState<MemberProposal> {
         val proposal = MemberProposal(party, daoName)
         val sponsorAction = CreateSponsorAction(proposal, daoName)
         val sponsor = rpcOps.wellKnownPartyFromX500Name(sponsorName) ?: throw IllegalArgumentException("Sponsor not found.")
-        rpcOps.startFlowDynamic(SponsorProposalFlow::class.java, sponsorAction, sponsor).returnValue.getOrThrow()
+        @Suppress("UNCHECKED_CAST")
+        return rpcOps.startFlowDynamic(SponsorProposalFlow::class.java, sponsorAction, sponsor).returnValue.getOrThrow() as ProposalState<MemberProposal>
+    }
+
+    fun acceptNewMemberProposal(proposalKey: ProposalKey, sponsorName: CordaX500Name): ProposalState<MemberProposal> {
+        val sponsorAction = AcceptSponsorAction<MemberProposal>(proposalKey)
+        val sponsor = rpcOps.wellKnownPartyFromX500Name(sponsorName) ?: throw IllegalArgumentException("Sponsor not found.")
+        @Suppress("UNCHECKED_CAST")
+        return rpcOps.startFlowDynamic(SponsorProposalFlow::class.java, sponsorAction, sponsor).returnValue.getOrThrow() as ProposalState<MemberProposal>
+    }
+
+    fun daoFor(daoKey: DaoKey): DaoState {
+        val criteria = LinearStateQueryCriteria(linearId = listOf(daoKey.uniqueIdentifier))
+        val daoStates = rpcOps.vaultQueryBy<DaoState>(criteria)
+        return daoStates.states.map { it.state }.first().data
     }
 }

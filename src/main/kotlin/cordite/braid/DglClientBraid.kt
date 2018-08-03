@@ -9,8 +9,8 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.loggerFor
 import java.util.*
 
-private val PARTY_A_NAME = "O=PartyA,L=London,C=GB"
-private val PARTY_B_NAME = "O=PartyB,L=New York,C=US"
+private const val PARTY_A_NAME = "O=PartyA,L=London,C=GB"
+private const val PARTY_B_NAME = "O=PartyB,L=New York,C=US"
 private val NOTARY_NAME = CordaX500Name("Notary", "London", "GB")
 
 fun main(args: Array<String>) {
