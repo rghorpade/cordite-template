@@ -14,24 +14,23 @@ private const val PARTY_B_NAME = "O=PartyB,L=New York,C=US"
 private val NOTARY_NAME = CordaX500Name("Notary", "London", "GB")
 
 fun main(args: Array<String>) {
-    val (randomAccountA, randomAccountB, randomSymbol) = (0..2).map { UUID.randomUUID().toString() }
+    val randomSymbol = UUID.randomUUID().toString()
 
     val clientA = DglClientBraid(PARTY_A_NAME)
     val clientB = DglClientBraid(PARTY_B_NAME)
 
     // PartyA issues itself 100 of a new token.
-    clientA.ledger.createAccount(randomAccountA, NOTARY_NAME).getOrThrow()
+    val accountA = clientA.ledger.createAccount(UUID.randomUUID().toString(), NOTARY_NAME).getOrThrow()
     clientA.ledger.createTokenType(randomSymbol, 0, NOTARY_NAME).getOrThrow()
-    clientA.ledger.issueToken(randomAccountA, "100", randomSymbol, "", NOTARY_NAME).getOrThrow()
+    clientA.ledger.issueToken(accountA.address.accountId, "100", randomSymbol, "", NOTARY_NAME).getOrThrow()
 
     // PartyA transfers 75 of the new token to PartyB.
-    clientB.ledger.createAccount(randomAccountB, NOTARY_NAME).getOrThrow()
-    clientA.ledger.transferToken("75", randomSymbol, randomAccountA, randomAccountB, "", NOTARY_NAME).getOrThrow()
+    val accountB = clientB.ledger.createAccount(UUID.randomUUID().toString(), NOTARY_NAME).getOrThrow()
+    clientA.ledger.transferToken("75", randomSymbol, accountA.address.accountId, accountB.address.uri, "", NOTARY_NAME).getOrThrow()
 
     // We look at the output. PartyA has 25 and PartyB has 75.
-    println(clientA.ledger.balanceForAccount(randomAccountA).getOrThrow())
-    // TODO: Money hasn't arrived!
-    println(clientB.ledger.balanceForAccount(randomAccountB).getOrThrow())
+    println(clientA.ledger.balanceForAccount(accountA.address.accountId).getOrThrow())
+    println(clientB.ledger.balanceForAccount(accountB.address.accountId).getOrThrow())
 
     clientA.close()
     clientB.close()

@@ -32,7 +32,6 @@ fun main(args: Array<String>) {
 
     // PartyB joins the DAO.
     val proposalState = clientB.createNewMemberProposal(daoName, PARTY_A_NAME)
-    // TODO: Explain why B can accept its own membership proposal.
     clientB.acceptNewMemberProposal(proposalState.proposal.proposalKey, PARTY_A_NAME)
     val updatedDaoState = clientA.daoFor(daoState.daoKey)
     println(updatedDaoState.members)
