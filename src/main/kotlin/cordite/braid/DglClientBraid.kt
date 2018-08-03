@@ -19,11 +19,13 @@ fun main(args: Array<String>) {
     val clientA = DglClientBraid(PARTY_A_NAME)
     val clientB = DglClientBraid(PARTY_B_NAME)
 
+    // PartyA issues itself 100 of a new token.
     clientA.ledger.createAccount(randomAccountA, NOTARY_NAME).getOrThrow()
     clientA.ledger.createTokenType(randomSymbol, 0, NOTARY_NAME).getOrThrow()
     clientA.ledger.issueToken(randomAccountA, "100", randomSymbol, "", NOTARY_NAME).getOrThrow()
-    println(clientA.ledger.balanceForAccount(randomAccountA).getOrThrow())
 
+    // PartyA transfers 75 of the new token to PartyB.
+    // TODO: Money never arrives!
     clientA.ledger.transferToken("75", randomSymbol, randomAccountA, randomAccountB, "", NOTARY_NAME).getOrThrow()
     println(clientA.ledger.balanceForAccount(randomAccountA).getOrThrow())
     println(clientB.ledger.balanceForAccount(randomAccountB).getOrThrow())

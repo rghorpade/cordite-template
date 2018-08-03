@@ -10,17 +10,13 @@ import io.cordite.dgl.corda.token.TokenType.TokenTypeSchemaV1.PersistedTokenType
 import io.cordite.dgl.corda.token.flows.IssueTokenFlow
 import io.cordite.dgl.corda.token.flows.TransferTokenFlow
 import io.cordite.dgl.corda.token.issuedBy
-import net.corda.client.rpc.CordaRPCClient
-import net.corda.client.rpc.CordaRPCConnection
 import net.corda.core.contracts.Amount
+import net.corda.core.contracts.withoutIssuer
 import net.corda.core.identity.CordaX500Name
-import net.corda.core.identity.Party
-import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.messaging.startFlow
 import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.node.services.vault.Builder.equal
 import net.corda.core.node.services.vault.QueryCriteria.VaultCustomQueryCriteria
-import net.corda.core.utilities.NetworkHostAndPort
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
 import java.math.BigDecimal
@@ -41,14 +37,17 @@ fun main(args: Array<String>) {
     val clientA = DglClientRpc(PARTY_A_ADDRESS, RPC_USERNAME, RPC_PASSWORD, NOTARY_NAME)
     val clientB = DglClientRpc(PARTY_B_ADDRESS, RPC_USERNAME, RPC_PASSWORD, NOTARY_NAME)
 
+    // PartyA issues itself 100 of a new token.
     clientA.createAccount(randomAccountA)
     clientA.createTokenType(randomSymbol, 0)
     clientA.issueToken(randomSymbol, BigDecimal(100), randomAccountA)
-    println(clientA.getTokens(randomAccountA, randomSymbol))
 
+    // PartyA transfers 75 of the new token to PartyB.
     clientA.transferToken(randomSymbol, BigDecimal(75), randomAccountA, randomAccountB, PARTY_B_NAME)
-    clientA.getTokens(randomAccountA, randomSymbol)
-    clientB.getTokens(randomAccountB, randomSymbol)
+
+    // PartyA and PartyB print how many tokens they have.
+    println(clientA.balanceForAccount(randomAccountA))
+    println(clientB.balanceForAccount(randomAccountB))
 
     clientA.close()
     clientB.close()
@@ -63,19 +62,11 @@ private class DglClientRpc(address: String, username: String, password: String, 
 
     fun createAccount(accountId: String) {
         val accountRequests = listOf(CreateAccountFlow.Request(accountId))
-        try {
-            rpcOps.startFlow(::CreateAccountFlow, accountRequests, notary).returnValue.getOrThrow()
-        } catch (re: RuntimeException) {
-            logger.error("The account $accountId already exists.")
-        }
+        rpcOps.startFlow(::CreateAccountFlow, accountRequests, notary).returnValue.getOrThrow()
     }
 
     fun createTokenType(symbol: String, exponent: Int) {
-        try {
-            rpcOps.startFlow(::CreateTokenTypeFlow, symbol, exponent, notary).returnValue.getOrThrow()
-        } catch (re: RuntimeException) {
-            logger.error("The token type $symbol already exists.")
-        }
+        rpcOps.startFlow(::CreateTokenTypeFlow, symbol, exponent, notary).returnValue.getOrThrow()
     }
 
     fun issueToken(symbol: String, amount: BigDecimal, accountId: String) {
@@ -99,12 +90,16 @@ private class DglClientRpc(address: String, username: String, password: String, 
         rpcOps.startFlow(::TransferTokenFlow, fromAccount, toAccount, amountTokenType, "", notary).returnValue.getOrThrow()
     }
 
-    fun getTokens(accountId: String, symbol: String): List<Token.State> {
+    fun balanceForAccount(accountId: String): Set<Amount<TokenType.Descriptor>> {
         val accountIdCriteria = VaultCustomQueryCriteria(PersistedToken::accountId.equal(accountId))
-        val symbolCriteria = VaultCustomQueryCriteria(PersistedToken::tokenTypeSymbol.equal(symbol))
-        val tokens = rpcOps.vaultQueryBy<Token.State>(accountIdCriteria.and(symbolCriteria)).states.map { it.state.data }
-        val totalValue = tokens.sumBy { it.amount.quantity.toInt() }
-        println("$organisation has $totalValue tokens of type $symbol in account $accountId.")
-        return tokens
+        val states = rpcOps.vaultQueryBy<Token.State>(accountIdCriteria).states.map { it.state.data }
+
+        val balances = mutableMapOf<TokenType.Descriptor, Amount<TokenType.Descriptor>>()
+        states.forEach { state ->
+            val amount = state.amount.withoutIssuer()
+            balances[amount.token] = balances.getOrDefault(amount.token, Amount(0, amount.token)) + amount
+        }
+
+        return balances.values.toSet()
     }
 }
